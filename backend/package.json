@@ -1,0 +1,10 @@
+{
+    "name": "video-call-app-backend",
+    "version": "1.0.0",
+    "private": true,
+    "dependencies": {
+        "livekit-server-sdk": "^1.5.3",
+        "express": "^4.18.2",
+        "cors": "^2.8.5"
+    }
+}
