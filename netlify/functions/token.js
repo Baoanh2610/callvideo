@@ -1,6 +1,6 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 
-exports.handler = async (event, context) => {
+exports.handler = async (event) => { // Xóa tham số context
     try {
         if (event.httpMethod !== "POST") {
             return {
