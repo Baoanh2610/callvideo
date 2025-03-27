@@ -25,7 +25,7 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
     const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
     const [isCameraOn, setIsCameraOn] = useState(false);
     const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
-    const [uniqueUid, setUniqueUid] = useState<string>(""); // Thêm state cho uid duy nhất
+    const [uniqueUid, setUniqueUid] = useState<string>("");
 
     const appId = process.env.REACT_APP_AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7";
     const channelName = roomName;
@@ -43,6 +43,16 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 await client.leave();
                 setClient(null);
             }
+            if (localAudioTrack) {
+                localAudioTrack.stop();
+                localAudioTrack.close();
+                setLocalAudioTrack(null);
+            }
+            if (localVideoTrack) {
+                localVideoTrack.stop();
+                localVideoTrack.close();
+                setLocalVideoTrack(null);
+            }
             await signOut(auth);
             navigate("/");
         } catch (error: unknown) {
@@ -58,7 +68,7 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 const response = await fetch("/api/token", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ identity: uniqueUid, room: channelName }), // Sử dụng uniqueUid
+                    body: JSON.stringify({ identity: uniqueUid, room: channelName }),
                 });
                 console.log("Request body sent:", { identity: uniqueUid, room: channelName });
                 console.log("Response status:", response.status);
@@ -88,14 +98,13 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
             }
         };
         fetchToken();
-    }, [uniqueUid, channelName]); // Thêm uniqueUid vào dependency
+    }, [uniqueUid, channelName]);
 
     useEffect(() => {
         if (!token || !uniqueUid) return;
 
         const setupChannel = async () => {
             try {
-                // Đảm bảo client rời kênh trước khi tham gia lại
                 if (client) {
                     await client.leave();
                 }
@@ -119,7 +128,6 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                     setParticipants((prev) => prev.filter(p => p.uid !== remoteUser.uid));
                 });
 
-                // Làm mới token khi sắp hết hạn
                 agoraClient.on("token-privilege-will-expire", async () => {
                     console.log("Token will expire soon, fetching new token...");
                     const response = await fetch("/api/token", {
@@ -150,7 +158,6 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                     }
                 });
 
-                // Theo dõi trạng thái kết nối
                 agoraClient.on("connection-state-change", (curState, prevState) => {
                     console.log(`Connection state changed from ${prevState} to ${curState}`);
                 });
@@ -160,12 +167,11 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 let errorMessage: string;
                 if (error instanceof Error) {
                     errorMessage = error.message;
-                    // Xử lý lỗi UID_CONFLICT
                     if (errorMessage.includes("UID_CONFLICT")) {
                         console.log("UID conflict detected, generating new UID and retrying...");
                         const timestamp = Date.now();
                         const newUid = `${user.id}-${timestamp}`;
-                        setUniqueUid(newUid); // Tạo UID mới và thử lại
+                        setUniqueUid(newUid);
                         return;
                     }
                 } else if (typeof error === "string") {
@@ -186,8 +192,18 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 });
                 setClient(null);
             }
+            if (localAudioTrack) {
+                localAudioTrack.stop();
+                localAudioTrack.close();
+                setLocalAudioTrack(null);
+            }
+            if (localVideoTrack) {
+                localVideoTrack.stop();
+                localVideoTrack.close();
+                setLocalVideoTrack(null);
+            }
         };
-    }, [token, appId, channelName, client, uniqueUid]); // Thêm uniqueUid vào dependency
+    }, [token, appId, channelName, client, uniqueUid, user.id]); // Thêm user.id vào dependency array
 
     const toggleCameraAndMic = async () => {
         if (!client) return;
@@ -211,7 +227,7 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
                 const videoTrack = await AgoraRTC.createCameraVideoTrack();
                 await client.publish([audioTrack, videoTrack]);
-                const localVideoElement = videoRefs.current[uniqueUid]; // Sử dụng uniqueUid
+                const localVideoElement = videoRefs.current[uniqueUid];
                 if (localVideoElement) videoTrack.play(localVideoElement);
                 setLocalAudioTrack(audioTrack);
                 setLocalVideoTrack(videoTrack);
