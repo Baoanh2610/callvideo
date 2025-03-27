@@ -3,6 +3,7 @@ import { signInWithPopup, signOut, GoogleAuthProvider, fetchSignInMethodsForEmai
 import { auth, googleProvider, githubProvider } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
+import { Alert, Snackbar } from "@mui/material";
 
 interface User {
     name: string;
@@ -15,6 +16,8 @@ interface LoginProps {
 
 const Login = ({ setUser }: LoginProps) => {
     const navigate = useNavigate();
+    const [error, setError] = React.useState<string | null>(null);
+    const [isLoading, setIsLoading] = React.useState(false);
 
     useEffect(() => {
         signOut(auth)
@@ -32,49 +35,64 @@ const Login = ({ setUser }: LoginProps) => {
             message: error.message,
         });
 
-        if (error.code === "auth/account-exists-with-different-credential") {
-            try {
-                const emailMatch = error.message.match(/email\s*([^\s]+)/i);
-                const email = emailMatch ? emailMatch[1] : null;
+        let errorMessage = "Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.";
 
-                if (!email) {
-                    alert("Không thể xác định email tài khoản. Vui lòng thử lại.");
-                    return;
-                }
+        switch (error.code) {
+            case "auth/popup-closed-by-user":
+                errorMessage = "Bạn đã đóng cửa sổ đăng nhập. Vui lòng thử lại.";
+                break;
+            case "auth/account-exists-with-different-credential":
+                try {
+                    const emailMatch = error.message.match(/email\s*([^\s]+)/i);
+                    const email = emailMatch ? emailMatch[1] : null;
 
-                const methods = await fetchSignInMethodsForEmail(auth, email);
-
-                if (methods.includes(GoogleAuthProvider.PROVIDER_ID)) {
-                    try {
-                        const result = await signInWithPopup(auth, googleProvider);
-                        await linkWithPopup(result.user, githubProvider);
-                        const finalResult = await signInWithPopup(auth, githubProvider);
-                        const user = finalResult.user;
-
-                        setUser({
-                            name: user.displayName || "Không xác định",
-                            id: user.uid,
-                        });
-                        navigate("/room");
-                    } catch (linkError: any) {
-                        console.error("Lỗi liên kết tài khoản:", linkError);
-                        alert("Không thể liên kết tài khoản. Vui lòng thử lại.");
+                    if (!email) {
+                        errorMessage = "Không thể xác định email tài khoản. Vui lòng thử lại.";
+                        break;
                     }
-                } else {
-                    console.error("Nhiều phương thức đăng nhập tồn tại cho tài khoản này");
-                    alert("Đã có vấn đề với tài khoản của bạn. Vui lòng liên hệ hỗ trợ.");
+
+                    const methods = await fetchSignInMethodsForEmail(auth, email);
+
+                    if (methods.includes(GoogleAuthProvider.PROVIDER_ID)) {
+                        try {
+                            const result = await signInWithPopup(auth, googleProvider);
+                            await linkWithPopup(result.user, githubProvider);
+                            const finalResult = await signInWithPopup(auth, githubProvider);
+                            const user = finalResult.user;
+
+                            setUser({
+                                name: user.displayName || "Không xác định",
+                                id: user.uid,
+                            });
+                            navigate("/room");
+                            return;
+                        } catch (linkError: any) {
+                            errorMessage = "Không thể liên kết tài khoản. Vui lòng thử lại.";
+                        }
+                    } else {
+                        errorMessage = "Đã có vấn đề với tài khoản của bạn. Vui lòng liên hệ hỗ trợ.";
+                    }
+                } catch (fetchError: any) {
+                    errorMessage = "Không thể xác minh tài khoản. Vui lòng thử lại.";
                 }
-            } catch (fetchError: any) {
-                console.error("Lỗi tra cứu phương thức đăng nhập:", fetchError);
-                alert("Không thể xác minh tài khoản. Vui lòng thử lại.");
-            }
-        } else {
-            console.error("Lỗi đăng nhập không xác định:", error);
-            alert("Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.");
+                break;
+            case "auth/cancelled-popup-request":
+                errorMessage = "Yêu cầu đăng nhập đã bị hủy. Vui lòng thử lại.";
+                break;
+            case "auth/popup-blocked":
+                errorMessage = "Cửa sổ đăng nhập bị chặn. Vui lòng cho phép popup và thử lại.";
+                break;
+            default:
+                errorMessage = `Lỗi đăng nhập: ${error.message}`;
         }
+
+        setError(errorMessage);
+        setIsLoading(false);
     };
 
     const signInWithGoogle = async () => {
+        setIsLoading(true);
+        setError(null);
         try {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
@@ -86,6 +104,8 @@ const Login = ({ setUser }: LoginProps) => {
     };
 
     const signInWithGithub = async () => {
+        setIsLoading(true);
+        setError(null);
         try {
             const result = await signInWithPopup(auth, githubProvider);
             const user = result.user;
@@ -98,23 +118,36 @@ const Login = ({ setUser }: LoginProps) => {
 
     return (
         <div style={{ textAlign: "center", marginTop: "20%" }}>
-            <h2>Đăng nhập để tham gia gọi video</h2>
-            <Button
-                variant="contained"
-                color="primary"
-                onClick={signInWithGoogle}
-                style={{ margin: "10px" }}
+            <h2>Đăng nhập</h2>
+            <div style={{ margin: "20px" }}>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={signInWithGoogle}
+                    disabled={isLoading}
+                    style={{ marginRight: "10px" }}
+                >
+                    Đăng nhập với Google
+                </Button>
+                <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={signInWithGithub}
+                    disabled={isLoading}
+                >
+                    Đăng nhập với GitHub
+                </Button>
+            </div>
+            <Snackbar
+                open={!!error}
+                autoHideDuration={6000}
+                onClose={() => setError(null)}
+                anchorOrigin={{ vertical: "top", horizontal: "center" }}
             >
-                Đăng nhập bằng Google
-            </Button>
-            <Button
-                variant="contained"
-                color="primary"
-                onClick={signInWithGithub}
-                style={{ margin: "10px" }}
-            >
-                Đăng nhập bằng GitHub
-            </Button>
+                <Alert onClose={() => setError(null)} severity="error" sx={{ width: "100%" }}>
+                    {error}
+                </Alert>
+            </Snackbar>
         </div>
     );
 };
