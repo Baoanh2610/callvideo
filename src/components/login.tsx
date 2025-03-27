@@ -64,7 +64,7 @@ const Login = ({ setUser }: LoginProps) => {
                                 name: user.displayName || "Không xác định",
                                 id: user.uid,
                             });
-                            navigate("/room");
+                            navigate("/select-room");
                             return;
                         } catch (linkError: any) {
                             errorMessage = "Không thể liên kết tài khoản. Vui lòng thử lại.";
@@ -97,7 +97,7 @@ const Login = ({ setUser }: LoginProps) => {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
             setUser({ name: user.displayName || "Không xác định", id: user.uid });
-            navigate("/room");
+            navigate("/select-room");
         } catch (error: any) {
             handleSignInError(error);
         }
@@ -110,7 +110,7 @@ const Login = ({ setUser }: LoginProps) => {
             const result = await signInWithPopup(auth, githubProvider);
             const user = result.user;
             setUser({ name: user.displayName || "Không xác định", id: user.uid });
-            navigate("/room");
+            navigate("/select-room");
         } catch (error: any) {
             handleSignInError(error);
         }
