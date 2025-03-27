@@ -1,38 +1,35 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 
 exports.handler = async (event, context) => {
-    if (event.httpMethod !== "POST") {
-        return {
-            statusCode: 405,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ error: "Method not allowed" }),
-        };
-    }
-
     try {
-        const { identity, room } = JSON.parse(event.body);
-        console.log("Request body:", { identity, room });
+        if (event.httpMethod !== "POST") {
+            return {
+                statusCode: 405,
+                body: JSON.stringify({ error: "Method Not Allowed" }),
+            };
+        }
 
-        const appId = process.env.AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7";
-        const appCertificate = process.env.AGORA_APP_CERTIFICATE || "30148e6d8fe5405e94f1d1ec9b7ccac1";
+        const appId = process.env.AGORA_APP_ID;
+        const appCertificate = process.env.AGORA_APP_CERTIFICATE;
 
         if (!appId || !appCertificate) {
-            throw new Error("appId or appCertificate is missing");
+            return {
+                statusCode: 500,
+                body: JSON.stringify({ error: "Missing AGORA_APP_ID or AGORA_APP_CERTIFICATE" }),
+            };
         }
 
-        if (!room) {
-            throw new Error("Room name is missing in request body");
+        const { identity, room } = JSON.parse(event.body);
+        if (!identity || !room) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ error: "Missing identity or room in request body" }),
+            };
         }
 
-        if (!identity) {
-            throw new Error("Identity is missing in request body");
-        }
-
-        const uid = identity; // Sử dụng identity (user.id) làm uid
+        const uid = identity;
         const role = RtcRole.PUBLISHER;
-        const expirationTimeInSeconds = 86400;
+        const expirationTimeInSeconds = 3600;
         const currentTimestamp = Math.floor(Date.now() / 1000);
         const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 
@@ -45,26 +42,18 @@ exports.handler = async (event, context) => {
             privilegeExpiredTs
         );
 
+        console.log("Request body:", { identity, room });
         console.log("Generated Agora token:", token);
-        if (!token || typeof token !== "string") {
-            throw new Error("Generated token is not a string");
-        }
 
         return {
             statusCode: 200,
-            headers: {
-                "Content-Type": "application/json",
-            },
             body: JSON.stringify({ token }),
         };
     } catch (error) {
         console.error("Error generating token:", error);
         return {
             statusCode: 500,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ error: "Failed to generate token", details: error.message }),
+            body: JSON.stringify({ error: "Failed to generate token" }),
         };
     }
 };
