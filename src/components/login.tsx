@@ -1,14 +1,5 @@
 import React, { useEffect } from "react";
-import {
-    signInWithPopup,
-    signOut,
-    GoogleAuthProvider,
-    GithubAuthProvider,
-    linkWithPopup,
-    fetchSignInMethodsForEmail,
-    AuthError,
-    OAuthCredential
-} from "firebase/auth";
+import { signInWithPopup, signOut, GoogleAuthProvider, fetchSignInMethodsForEmail, linkWithPopup } from "firebase/auth";
 import { auth, googleProvider, githubProvider } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
@@ -25,28 +16,24 @@ interface LoginProps {
 const Login = ({ setUser }: LoginProps) => {
     const navigate = useNavigate();
 
-    // Đăng xuất khi vào trang đăng nhập
     useEffect(() => {
         signOut(auth)
             .then(() => {
-                setUser(null); // Xóa user trong state
+                setUser(null);
             })
             .catch((error) => {
                 console.error("Lỗi đăng xuất:", error);
             });
     }, [setUser]);
 
-    // Xử lý lỗi đăng nhập
     const handleSignInError = async (error: any) => {
-        // Kiểm tra và log lỗi một cách an toàn
         console.error("Chi tiết lỗi:", {
             code: error.code,
-            message: error.message
+            message: error.message,
         });
 
-        if (error.code === 'auth/account-exists-with-different-credential') {
+        if (error.code === "auth/account-exists-with-different-credential") {
             try {
-                // Lấy email từ thông báo lỗi nếu có
                 const emailMatch = error.message.match(/email\s*([^\s]+)/i);
                 const email = emailMatch ? emailMatch[1] : null;
 
@@ -55,24 +42,18 @@ const Login = ({ setUser }: LoginProps) => {
                     return;
                 }
 
-                // Tìm các phương thức đăng nhập đã được liên kết với email này
                 const methods = await fetchSignInMethodsForEmail(auth, email);
 
                 if (methods.includes(GoogleAuthProvider.PROVIDER_ID)) {
                     try {
-                        // Nếu Google là một trong các phương thức, hãy đăng nhập bằng Google trước
                         const result = await signInWithPopup(auth, googleProvider);
-
-                        // Sau đó liên kết thông tin đăng nhập GitHub
                         await linkWithPopup(result.user, githubProvider);
-
-                        // Đăng nhập bằng thông tin đăng nhập GitHub đã được liên kết
                         const finalResult = await signInWithPopup(auth, githubProvider);
                         const user = finalResult.user;
 
                         setUser({
                             name: user.displayName || "Không xác định",
-                            id: user.uid
+                            id: user.uid,
                         });
                         navigate("/room");
                     } catch (linkError: any) {
@@ -80,7 +61,6 @@ const Login = ({ setUser }: LoginProps) => {
                         alert("Không thể liên kết tài khoản. Vui lòng thử lại.");
                     }
                 } else {
-                    // Xử lý các trường hợp khác hoặc hiển thị thông báo lỗi
                     console.error("Nhiều phương thức đăng nhập tồn tại cho tài khoản này");
                     alert("Đã có vấn đề với tài khoản của bạn. Vui lòng liên hệ hỗ trợ.");
                 }
@@ -94,7 +74,6 @@ const Login = ({ setUser }: LoginProps) => {
         }
     };
 
-    // Đăng nhập bằng Google
     const signInWithGoogle = async () => {
         try {
             const result = await signInWithPopup(auth, googleProvider);
@@ -106,7 +85,6 @@ const Login = ({ setUser }: LoginProps) => {
         }
     };
 
-    // Đăng nhập bằng GitHub
     const signInWithGithub = async () => {
         try {
             const result = await signInWithPopup(auth, githubProvider);

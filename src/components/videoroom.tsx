@@ -25,7 +25,7 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
     const [isCameraOn, setIsCameraOn] = useState(false);
     const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
 
-    const appId = process.env.REACT_APP_AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7"; // Lấy từ biến môi trường
+    const appId = process.env.REACT_APP_AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7";
     const channelName = "my-room";
 
     const handleSignOut = async () => {
@@ -40,7 +40,6 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
         }
     };
 
-    // Lấy token từ API
     useEffect(() => {
         const fetchToken = async () => {
             try {
@@ -52,23 +51,33 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 console.log("Request body sent:", { identity: user.name, room: channelName });
                 console.log("Response status:", response.status);
                 console.log("Response headers:", response.headers);
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    const text = await response.text();
+                    throw new Error(`Expected JSON, but received: ${text}`);
+                }
                 const data = await response.json();
                 console.log("Full response from server:", data);
-                console.log("Received token:", data.token);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${data.error || "Unknown error"}`);
+                }
+                if (!data.token) {
+                    throw new Error("Token not found in response");
+                }
                 if (typeof data.token !== "string") {
                     throw new Error("Token is not a string");
                 }
+                console.log("Received token:", data.token);
                 setToken(data.token);
             } catch (error) {
                 console.error("Error fetching token:", error);
-                alert("Không thể lấy token. Vui lòng thử lại.");
+                const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+                alert(`Không thể lấy token: ${errorMessage}`);
             }
         };
         fetchToken();
     }, [user]);
 
-    // Kết nối kênh Agora sau khi có token
     useEffect(() => {
         if (!token) return;
 
@@ -106,7 +115,7 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 setClient(null);
             }
         };
-    }, [token, appId, channelName]);
+    }, [token, appId, channelName]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
     const toggleCameraAndMic = async () => {
         if (!client) return;
@@ -146,7 +155,6 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
         <div>
             <h2>Phòng Video - Chào {user.name}!</h2>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
-                {/* Local user */}
                 <div key={user.id} style={{ margin: "10px", textAlign: "center" }}>
                     <p>{user.name} (You)</p>
                     <video
@@ -159,7 +167,6 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                         muted
                     />
                 </div>
-                {/* Remote users */}
                 {participants.map((participant) => (
                     <div key={participant.uid!.toString()} style={{ margin: "10px", textAlign: "center" }}>
                         <p>User {participant.uid}</p>

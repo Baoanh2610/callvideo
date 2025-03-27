@@ -1,15 +1,25 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 
 module.exports = async (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", process.env.FRONTEND_URL || "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST");
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+        console.error("FRONTEND_URL is not set");
+        return res.status(500).json({ error: "Server configuration error: FRONTEND_URL is missing" });
+    }
+
+    res.setHeader("Access-Control-Allow-Origin", frontendUrl);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+    console.log(`CORS set for origin: ${frontendUrl}`);
+
     if (req.method === "OPTIONS") {
+        console.log("Handling OPTIONS request");
         return res.status(200).end();
     }
 
     if (req.method !== "POST") {
+        console.log(`Method not allowed: ${req.method}`);
         return res.status(405).json({ error: "Method not allowed" });
     }
 
@@ -19,6 +29,9 @@ module.exports = async (req, res) => {
     try {
         const appId = process.env.AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7";
         const appCertificate = process.env.AGORA_APP_CERTIFICATE || "30148e6d8fe5405e94f1d1ec9b7ccac1";
+
+        console.log("Using appId:", appId);
+        console.log("Using appCertificate:", appCertificate);
 
         if (!appId || !appCertificate) {
             throw new Error("appId or appCertificate is missing");
