@@ -44,16 +44,6 @@ const Login = ({ setUser }: LoginProps) => {
                 console.error("Error in getRedirectResult:", error);
                 handleSignInError(error);
             });
-
-        // Đăng xuất khi component mount
-        signOut(auth)
-            .then(() => {
-                console.log("User signed out");
-                setUser(null);
-            })
-            .catch((error) => {
-                console.error("Lỗi đăng xuất:", error);
-            });
     }, [setUser, navigate]);
 
     const handleSignInError = async (error: any) => {
