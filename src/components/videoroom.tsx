@@ -126,7 +126,7 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 setClient(null);
             }
         };
-    }, [token, appId, channelName, client]);
+    }, [token, appId, channelName, client, user.id]); // Thêm user.id vào dependency array
 
     const toggleCameraAndMic = async () => {
         if (!client) return;
