@@ -48,16 +48,16 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
     const [uniqueUid, setUniqueUid] = useState<string>("");
 
     // Agora Configuration
-    const appId = process.env.REACT_APP_AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7"; // Đảm bảo appId hợp lệ
+    const appId = process.env.REACT_APP_AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7";
     const channelName = roomName;
 
     // Safe Video Play Function
-    const safePlayVideo = (track: any, key: string) => {
+    const safePlayVideo = useCallback((track: any, key: string) => {
         const videoElement = videoRefs.current[key];
         if (track && videoElement) {
             track.play(videoElement);
         }
-    };
+    }, []);
 
     // Create Unique ID on Mount
     useEffect(() => {
@@ -207,7 +207,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
                 });
 
                 // Connect to Channel
-                await agoraClient.join(appId, channelName, token, uniqueUid); // Sử dụng uniqueUid trực tiếp
+                await agoraClient.join(appId, channelName, token, uniqueUid);
                 setClient(agoraClient);
                 setConnectionStatus(ConnectionStatus.CONNECTED);
                 setConnectionError(null);
@@ -281,7 +281,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
             setParticipants([]);
             setConnectionStatus(ConnectionStatus.DISCONNECTED);
         };
-    }, [token, appId, channelName, uniqueUid]);
+    }, [token, appId, channelName, uniqueUid, safePlayVideo, setLocalAudioTrack, setLocalVideoTrack, setParticipants, setConnectionStatus, setConnectionError, setClient, setIsCameraOn]);
 
     // Toggle Camera
     const toggleCamera = async () => {
