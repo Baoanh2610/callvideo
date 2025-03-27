@@ -33,3 +33,5 @@ export const githubProvider = new GithubAuthProvider();
 githubProvider.setCustomParameters({
     redirect_uri: window.location.origin,
 });
+
+githubProvider.addScope('user:email');
