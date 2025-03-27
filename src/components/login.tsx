@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { signInWithPopup, signOut, GoogleAuthProvider, fetchSignInMethodsForEmail, linkWithPopup } from "firebase/auth";
+import { signInWithRedirect, signOut, GoogleAuthProvider, fetchSignInMethodsForEmail, linkWithRedirect } from "firebase/auth";
 import { auth, googleProvider, githubProvider } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
@@ -38,9 +38,6 @@ const Login = ({ setUser }: LoginProps) => {
         let errorMessage = "Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.";
 
         switch (error.code) {
-            case "auth/popup-closed-by-user":
-                errorMessage = "Bạn đã đóng cửa sổ đăng nhập. Vui lòng thử lại.";
-                break;
             case "auth/account-exists-with-different-credential":
                 try {
                     const emailMatch = error.message.match(/email\s*([^\s]+)/i);
@@ -55,16 +52,7 @@ const Login = ({ setUser }: LoginProps) => {
 
                     if (methods.includes(GoogleAuthProvider.PROVIDER_ID)) {
                         try {
-                            const result = await signInWithPopup(auth, googleProvider);
-                            await linkWithPopup(result.user, githubProvider);
-                            const finalResult = await signInWithPopup(auth, githubProvider);
-                            const user = finalResult.user;
-
-                            setUser({
-                                name: user.displayName || "Không xác định",
-                                id: user.uid,
-                            });
-                            navigate("/select-room");
+                            await signInWithRedirect(auth, googleProvider);
                             return;
                         } catch (linkError: any) {
                             errorMessage = "Không thể liên kết tài khoản. Vui lòng thử lại.";
@@ -75,12 +63,6 @@ const Login = ({ setUser }: LoginProps) => {
                 } catch (fetchError: any) {
                     errorMessage = "Không thể xác minh tài khoản. Vui lòng thử lại.";
                 }
-                break;
-            case "auth/cancelled-popup-request":
-                errorMessage = "Yêu cầu đăng nhập đã bị hủy. Vui lòng thử lại.";
-                break;
-            case "auth/popup-blocked":
-                errorMessage = "Cửa sổ đăng nhập bị chặn. Vui lòng cho phép popup và thử lại.";
                 break;
             default:
                 errorMessage = `Lỗi đăng nhập: ${error.message}`;
@@ -94,10 +76,7 @@ const Login = ({ setUser }: LoginProps) => {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const user = result.user;
-            setUser({ name: user.displayName || "Không xác định", id: user.uid });
-            navigate("/select-room");
+            await signInWithRedirect(auth, googleProvider);
         } catch (error: any) {
             handleSignInError(error);
         }
@@ -107,10 +86,7 @@ const Login = ({ setUser }: LoginProps) => {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await signInWithPopup(auth, githubProvider);
-            const user = result.user;
-            setUser({ name: user.displayName || "Không xác định", id: user.uid });
-            navigate("/select-room");
+            await signInWithRedirect(auth, githubProvider);
         } catch (error: any) {
             handleSignInError(error);
         }
