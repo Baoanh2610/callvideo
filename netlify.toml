@@ -1,12 +1,6 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  functions = "netlify/functions"
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
 
 [[redirects]]
   from = "/*"
@@ -15,9 +9,4 @@
 
 [build.environment]
   NODE_VERSION = "18"
-
-[build.processing]
-  skip_processing = true
-
-[build.processing.images]
-  compress = true
+  NPM_VERSION = "10"
