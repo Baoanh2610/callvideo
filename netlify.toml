@@ -35,3 +35,8 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[build.processing.skip_processing]
+  - "*.html"
+  - "*.js"
+  - "*.css"
