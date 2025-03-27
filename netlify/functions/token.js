@@ -1,10 +1,27 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 
-exports.handler = async (event) => { // Xóa tham số context
+exports.handler = async (event) => {
     try {
+        // Thêm CORS headers
+        const headers = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        };
+
+        // Xử lý OPTIONS request cho CORS
+        if (event.httpMethod === 'OPTIONS') {
+            return {
+                statusCode: 200,
+                headers,
+                body: ''
+            };
+        }
+
         if (event.httpMethod !== "POST") {
             return {
                 statusCode: 405,
+                headers,
                 body: JSON.stringify({ error: "Method Not Allowed" }),
             };
         }
@@ -47,12 +64,16 @@ exports.handler = async (event) => { // Xóa tham số context
 
         return {
             statusCode: 200,
+            headers,
             body: JSON.stringify({ token }),
         };
     } catch (error) {
         console.error("Error generating token:", error);
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+            },
             body: JSON.stringify({ error: "Failed to generate token" }),
         };
     }
