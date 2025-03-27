@@ -8,7 +8,7 @@ import AgoraRTC, {
     IAgoraRTCRemoteUser,
     IMicrophoneAudioTrack,
     ICameraVideoTrack,
-    IAgoraRTCError, // Thay AgoraRTCError bằng IAgoraRTCError
+    IAgoraRTCError,
 } from "agora-rtc-sdk-ng";
 
 // User and Room Types
@@ -155,7 +155,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
                 });
 
                 // Error Handler with Typed Error
-                agoraClient.on("error", (err: IAgoraRTCError) => { // Thay AgoraRTCError bằng IAgoraRTCError
+                agoraClient.on("error", (err: IAgoraRTCError) => {
                     console.error("Agora Client Error:", err);
                     setConnectionStatus(ConnectionStatus.ERROR);
                     const errorMessage = err.message || "Unknown Error";
