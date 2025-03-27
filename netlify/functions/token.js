@@ -1,7 +1,6 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 
 exports.handler = async (event, context) => {
-    // Chỉ xử lý POST request
     if (event.httpMethod !== "POST") {
         return {
             statusCode: 405,
@@ -27,7 +26,11 @@ exports.handler = async (event, context) => {
             throw new Error("Room name is missing in request body");
         }
 
-        const uid = 0;
+        if (!identity) {
+            throw new Error("Identity is missing in request body");
+        }
+
+        const uid = identity; // Sử dụng identity (user.id) làm uid
         const role = RtcRole.PUBLISHER;
         const expirationTimeInSeconds = 3600;
         const currentTimestamp = Math.floor(Date.now() / 1000);

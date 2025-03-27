@@ -46,9 +46,9 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 const response = await fetch("/api/token", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ identity: user.name, room: channelName }),
+                    body: JSON.stringify({ identity: user.id, room: channelName }), // Sử dụng user.id thay vì user.name
                 });
-                console.log("Request body sent:", { identity: user.name, room: channelName });
+                console.log("Request body sent:", { identity: user.id, room: channelName });
                 console.log("Response status:", response.status);
                 console.log("Response headers:", response.headers);
                 const contentType = response.headers.get("content-type");
@@ -115,7 +115,7 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 setClient(null);
             }
         };
-    }, [token, appId, channelName, client]); // Thêm 'client' vào dependency array
+    }, [token, appId, channelName, client]);
 
     const toggleCameraAndMic = async () => {
         if (!client) return;
