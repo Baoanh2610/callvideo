@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { signInWithPopup, GoogleAuthProvider, fetchSignInMethodsForEmail, getRedirectResult, onAuthStateChanged } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider, fetchSignInMethodsForEmail, getRedirectResult, onAuthStateChanged, linkWithPopup } from "firebase/auth";
 import { auth, googleProvider, githubProvider } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
@@ -99,11 +99,17 @@ const Login = ({ setUser }: LoginProps) => {
                             errorMessage = "Không thể liên kết tài khoản. Vui lòng thử lại.";
                         }
                     } else {
-                        errorMessage = "Đã có vấn đề với tài khoản của bạn. Vui lòng liên hệ hỗ trợ.";
+                        errorMessage = "Tài khoản này đã được đăng ký với phương thức khác. Vui lòng sử dụng phương thức đăng nhập khác.";
                     }
                 } catch (fetchError: any) {
                     errorMessage = "Không thể xác minh tài khoản. Vui lòng thử lại.";
                 }
+                break;
+            case "auth/popup-closed-by-user":
+                errorMessage = "Bạn đã đóng cửa sổ đăng nhập. Vui lòng thử lại.";
+                break;
+            case "auth/popup-blocked":
+                errorMessage = "Cửa sổ đăng nhập bị chặn. Vui lòng cho phép popup và thử lại.";
                 break;
             default:
                 errorMessage = `Lỗi đăng nhập: ${error.message}`;
