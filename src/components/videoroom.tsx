@@ -25,14 +25,23 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
     const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
     const [isCameraOn, setIsCameraOn] = useState(false);
     const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
+    const [uniqueUid, setUniqueUid] = useState<string>(""); // Thêm state cho uid duy nhất
 
     const appId = process.env.REACT_APP_AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7";
     const channelName = roomName;
 
+    // Tạo uid duy nhất bằng cách kết hợp user.id với timestamp
+    useEffect(() => {
+        const timestamp = Date.now();
+        const newUid = `${user.id}-${timestamp}`;
+        setUniqueUid(newUid);
+    }, [user.id]);
+
     const handleSignOut = async () => {
         try {
             if (client) {
-                client.leave();
+                await client.leave();
+                setClient(null);
             }
             await signOut(auth);
             navigate("/");
@@ -49,9 +58,9 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 const response = await fetch("/api/token", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ identity: user.id, room: channelName }),
+                    body: JSON.stringify({ identity: uniqueUid, room: channelName }), // Sử dụng uniqueUid
                 });
-                console.log("Request body sent:", { identity: user.id, room: channelName });
+                console.log("Request body sent:", { identity: uniqueUid, room: channelName });
                 console.log("Response status:", response.status);
                 console.log("Response headers:", response.headers);
                 const contentType = response.headers.get("content-type");
@@ -79,14 +88,19 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
             }
         };
         fetchToken();
-    }, [user, channelName]);
+    }, [uniqueUid, channelName]); // Thêm uniqueUid vào dependency
 
     useEffect(() => {
-        if (!token) return;
+        if (!token || !uniqueUid) return;
 
         const setupChannel = async () => {
             try {
-                const agoraClient = await connectToChannel(token, channelName, appId, user.id);
+                // Đảm bảo client rời kênh trước khi tham gia lại
+                if (client) {
+                    await client.leave();
+                }
+
+                const agoraClient = await connectToChannel(token, channelName, appId, uniqueUid);
                 setClient(agoraClient);
 
                 agoraClient.on("user-published", async (remoteUser, mediaType) => {
@@ -104,11 +118,56 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 agoraClient.on("user-unpublished", (remoteUser) => {
                     setParticipants((prev) => prev.filter(p => p.uid !== remoteUser.uid));
                 });
+
+                // Làm mới token khi sắp hết hạn
+                agoraClient.on("token-privilege-will-expire", async () => {
+                    console.log("Token will expire soon, fetching new token...");
+                    const response = await fetch("/api/token", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ identity: uniqueUid, room: channelName }),
+                    });
+                    const data = await response.json();
+                    if (data.token) {
+                        await agoraClient.renewToken(data.token);
+                        setToken(data.token);
+                        console.log("Token renewed:", data.token);
+                    }
+                });
+
+                agoraClient.on("token-privilege-did-expire", async () => {
+                    console.log("Token expired, fetching new token...");
+                    const response = await fetch("/api/token", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ identity: uniqueUid, room: channelName }),
+                    });
+                    const data = await response.json();
+                    if (data.token) {
+                        await agoraClient.renewToken(data.token);
+                        setToken(data.token);
+                        console.log("Token renewed:", data.token);
+                    }
+                });
+
+                // Theo dõi trạng thái kết nối
+                agoraClient.on("connection-state-change", (curState, prevState) => {
+                    console.log(`Connection state changed from ${prevState} to ${curState}`);
+                });
+
             } catch (error: unknown) {
                 console.error("Error connecting to channel:", error);
                 let errorMessage: string;
                 if (error instanceof Error) {
                     errorMessage = error.message;
+                    // Xử lý lỗi UID_CONFLICT
+                    if (errorMessage.includes("UID_CONFLICT")) {
+                        console.log("UID conflict detected, generating new UID and retrying...");
+                        const timestamp = Date.now();
+                        const newUid = `${user.id}-${timestamp}`;
+                        setUniqueUid(newUid); // Tạo UID mới và thử lại
+                        return;
+                    }
                 } else if (typeof error === "string") {
                     errorMessage = error;
                 } else {
@@ -122,11 +181,13 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
 
         return () => {
             if (client) {
-                client.leave();
+                client.leave().catch((err) => {
+                    console.error("Failed to leave channel during cleanup:", err);
+                });
                 setClient(null);
             }
         };
-    }, [token, appId, channelName, client, user.id]); // Thêm user.id vào dependency array
+    }, [token, appId, channelName, client, uniqueUid]); // Thêm uniqueUid vào dependency
 
     const toggleCameraAndMic = async () => {
         if (!client) return;
@@ -150,7 +211,7 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
                 const videoTrack = await AgoraRTC.createCameraVideoTrack();
                 await client.publish([audioTrack, videoTrack]);
-                const localVideoElement = videoRefs.current[user.id];
+                const localVideoElement = videoRefs.current[uniqueUid]; // Sử dụng uniqueUid
                 if (localVideoElement) videoTrack.play(localVideoElement);
                 setLocalAudioTrack(audioTrack);
                 setLocalVideoTrack(videoTrack);
@@ -167,11 +228,11 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
         <div>
             <h2>Phòng Video - Chào {user.name}! (Phòng: {channelName})</h2>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
-                <div key={user.id} style={{ margin: "10px", textAlign: "center" }}>
+                <div key={uniqueUid} style={{ margin: "10px", textAlign: "center" }}>
                     <p>{user.name} (You)</p>
                     <video
                         ref={(el) => {
-                            if (el) videoRefs.current[user.id] = el;
+                            if (el) videoRefs.current[uniqueUid] = el;
                         }}
                         style={{ width: "300px", height: "200px", backgroundColor: "black", objectFit: "cover" }}
                         autoPlay
