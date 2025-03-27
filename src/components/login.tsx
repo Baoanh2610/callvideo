@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { signInWithRedirect, signOut, GoogleAuthProvider, fetchSignInMethodsForEmail, linkWithRedirect } from "firebase/auth";
+import { signInWithRedirect, signOut, GoogleAuthProvider, fetchSignInMethodsForEmail, linkWithRedirect, getRedirectResult } from "firebase/auth";
 import { auth, googleProvider, githubProvider } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
@@ -20,6 +20,22 @@ const Login = ({ setUser }: LoginProps) => {
     const [isLoading, setIsLoading] = React.useState(false);
 
     useEffect(() => {
+        // Xử lý kết quả đăng nhập sau khi chuyển hướng
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result?.user) {
+                    setUser({
+                        name: result.user.displayName || "Không xác định",
+                        id: result.user.uid,
+                    });
+                    navigate("/select-room");
+                }
+            })
+            .catch((error) => {
+                handleSignInError(error);
+            });
+
+        // Đăng xuất khi component mount
         signOut(auth)
             .then(() => {
                 setUser(null);
@@ -27,7 +43,7 @@ const Login = ({ setUser }: LoginProps) => {
             .catch((error) => {
                 console.error("Lỗi đăng xuất:", error);
             });
-    }, [setUser]);
+    }, [setUser, navigate]);
 
     const handleSignInError = async (error: any) => {
         console.error("Chi tiết lỗi:", {
