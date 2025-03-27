@@ -86,7 +86,7 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
 
         const setupChannel = async () => {
             try {
-                const agoraClient = await connectToChannel(token, channelName, appId);
+                const agoraClient = await connectToChannel(token, channelName, appId, user.id);
                 setClient(agoraClient);
 
                 agoraClient.on("user-published", async (remoteUser, mediaType) => {

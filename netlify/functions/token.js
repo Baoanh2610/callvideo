@@ -32,7 +32,7 @@ exports.handler = async (event, context) => {
 
         const uid = identity; // Sử dụng identity (user.id) làm uid
         const role = RtcRole.PUBLISHER;
-        const expirationTimeInSeconds = 3600;
+        const expirationTimeInSeconds = 86400;
         const currentTimestamp = Math.floor(Date.now() / 1000);
         const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 

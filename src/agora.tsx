@@ -1,10 +1,9 @@
 import AgoraRTC, { IAgoraRTCClient } from "agora-rtc-sdk-ng";
 
-export const connectToChannel = async (token: string, channelName: string, appId: string): Promise<IAgoraRTCClient> => {
+export const connectToChannel = async (token: string, channelName: string, appId: string, uid: string): Promise<IAgoraRTCClient> => {
     const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
     try {
-        await client.join(appId, channelName, token, null);
+        await client.join(appId, channelName, token, uid);
         return client;
     } catch (error: unknown) {
         let errorMessage: string;
