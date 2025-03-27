@@ -115,7 +115,7 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 setClient(null);
             }
         };
-    }, [token, appId, channelName]); // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token, appId, channelName, client]); // Thêm 'client' vào dependency array
 
     const toggleCameraAndMic = async () => {
         if (!client) return;
