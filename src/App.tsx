@@ -6,7 +6,7 @@ import Login from "./components/login";
 import VideoRoom from "./components/videoroom";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
-import { v4 as uuidv4 } from "uuid"; // Thêm uuid để tạo mã room
+import { v4 as uuidv4 } from "uuid";
 
 interface User {
   name: string;
@@ -61,7 +61,7 @@ const SelectRoom = () => {
   const [createdRoomCode, setCreatedRoomCode] = useState<string | null>(null);
 
   const handleCreateRoom = () => {
-    const newRoomCode = uuidv4().slice(0, 8); // Tạo mã room ngẫu nhiên (8 ký tự)
+    const newRoomCode = uuidv4().slice(0, 8);
     setCreatedRoomCode(newRoomCode);
     navigate(`/room?code=${newRoomCode}`);
   };
@@ -116,7 +116,6 @@ const SelectRoom = () => {
 };
 
 const VideoRoomWrapper = ({ user }: { user: User }) => {
-  const navigate = useNavigate();
   const queryParams = new URLSearchParams(window.location.search);
   const roomCode = queryParams.get("code");
 
