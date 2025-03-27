@@ -203,7 +203,7 @@ const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
                 setLocalVideoTrack(null);
             }
         };
-    }, [token, appId, channelName, client, uniqueUid, user.id]); // Thêm user.id vào dependency array
+    }, [token, appId, channelName, client, uniqueUid, user.id, localAudioTrack, localVideoTrack]);
 
     const toggleCameraAndMic = async () => {
         if (!client) return;
