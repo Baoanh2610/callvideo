@@ -20,24 +20,35 @@ const Login = ({ setUser }: LoginProps) => {
     const [isLoading, setIsLoading] = React.useState(false);
 
     useEffect(() => {
+        console.log("Login component mounted");
+
         // Xử lý kết quả đăng nhập sau khi chuyển hướng
         getRedirectResult(auth)
             .then((result) => {
+                console.log("Redirect result:", result);
                 if (result?.user) {
-                    setUser({
+                    console.log("User authenticated:", result.user);
+                    const userData = {
                         name: result.user.displayName || "Không xác định",
                         id: result.user.uid,
-                    });
+                    };
+                    console.log("Setting user data:", userData);
+                    setUser(userData);
+                    console.log("Navigating to /select-room");
                     navigate("/select-room");
+                } else {
+                    console.log("No user in redirect result");
                 }
             })
             .catch((error) => {
+                console.error("Error in getRedirectResult:", error);
                 handleSignInError(error);
             });
 
         // Đăng xuất khi component mount
         signOut(auth)
             .then(() => {
+                console.log("User signed out");
                 setUser(null);
             })
             .catch((error) => {
@@ -65,9 +76,11 @@ const Login = ({ setUser }: LoginProps) => {
                     }
 
                     const methods = await fetchSignInMethodsForEmail(auth, email);
+                    console.log("Available sign-in methods:", methods);
 
                     if (methods.includes(GoogleAuthProvider.PROVIDER_ID)) {
                         try {
+                            console.log("Attempting to sign in with Google");
                             await signInWithRedirect(auth, googleProvider);
                             return;
                         } catch (linkError: any) {
@@ -89,21 +102,27 @@ const Login = ({ setUser }: LoginProps) => {
     };
 
     const signInWithGoogle = async () => {
+        console.log("Starting Google sign in");
         setIsLoading(true);
         setError(null);
         try {
             await signInWithRedirect(auth, googleProvider);
+            console.log("Google sign in redirect initiated");
         } catch (error: any) {
+            console.error("Error in Google sign in:", error);
             handleSignInError(error);
         }
     };
 
     const signInWithGithub = async () => {
+        console.log("Starting GitHub sign in");
         setIsLoading(true);
         setError(null);
         try {
             await signInWithRedirect(auth, githubProvider);
+            console.log("GitHub sign in redirect initiated");
         } catch (error: any) {
+            console.error("Error in GitHub sign in:", error);
             handleSignInError(error);
         }
     };

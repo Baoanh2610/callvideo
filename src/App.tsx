@@ -18,14 +18,18 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("App component mounted");
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      console.log("Auth state changed:", firebaseUser);
       if (firebaseUser) {
         const userData = {
           name: firebaseUser.displayName || "Unknown",
           id: firebaseUser.uid,
         };
+        console.log("Setting user data in App:", userData);
         setUser(userData);
       } else {
+        console.log("No user, setting user to null");
         setUser(null);
       }
       setLoading(false);
@@ -34,20 +38,34 @@ function App() {
   }, []);
 
   if (loading) {
+    console.log("App is loading");
     return <div>Đang tải...</div>;
   }
 
+  console.log("App rendering with user:", user);
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login setUser={setUser} />} />
         <Route
           path="/select-room"
-          element={user ? <SelectRoom /> : <Navigate to="/" replace />}
+          element={
+            user ? (
+              <SelectRoom />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
         />
         <Route
           path="/room"
-          element={user ? <VideoRoomWrapper user={user} /> : <Navigate to="/" replace />}
+          element={
+            user ? (
+              <VideoRoomWrapper user={user} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -60,16 +78,24 @@ const SelectRoom = () => {
   const [roomCode, setRoomCode] = useState("");
   const [createdRoomCode, setCreatedRoomCode] = useState<string | null>(null);
 
+  useEffect(() => {
+    console.log("SelectRoom component mounted");
+  }, []);
+
   const handleCreateRoom = () => {
+    console.log("Creating new room");
     const newRoomCode = uuidv4().slice(0, 8);
     setCreatedRoomCode(newRoomCode);
+    console.log("Navigating to room with code:", newRoomCode);
     navigate(`/room?code=${newRoomCode}`);
   };
 
   const handleJoinRoom = () => {
     if (roomCode.trim()) {
+      console.log("Joining room with code:", roomCode.trim());
       navigate(`/room?code=${roomCode.trim()}`);
     } else {
+      console.log("No room code provided");
       alert("Vui lòng nhập mã phòng!");
     }
   };
@@ -119,10 +145,16 @@ const VideoRoomWrapper = ({ user }: { user: User }) => {
   const queryParams = new URLSearchParams(window.location.search);
   const roomCode = queryParams.get("code");
 
+  useEffect(() => {
+    console.log("VideoRoomWrapper mounted with room code:", roomCode);
+  }, [roomCode]);
+
   if (!roomCode) {
+    console.log("No room code, redirecting to /select-room");
     return <Navigate to="/select-room" replace />;
   }
 
+  console.log("Rendering VideoRoom with user:", user, "and room code:", roomCode);
   return <VideoRoom user={user} roomName={roomCode} />;
 };
 
