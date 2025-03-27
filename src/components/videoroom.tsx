@@ -8,7 +8,7 @@ import AgoraRTC, {
     IAgoraRTCRemoteUser,
     IMicrophoneAudioTrack,
     ICameraVideoTrack,
-    AgoraRTCError
+    AgoraRTCError,
 } from "agora-rtc-sdk-ng";
 
 // User and Room Types
@@ -27,7 +27,7 @@ enum ConnectionStatus {
     CONNECTING = "Connecting...",
     CONNECTED = "Connected Successfully",
     DISCONNECTED = "Disconnected",
-    ERROR = "Connection Error"
+    ERROR = "Connection Error",
 }
 
 const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
@@ -48,7 +48,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
     const [uniqueUid, setUniqueUid] = useState<string>("");
 
     // Agora Configuration
-    const appId = process.env.REACT_APP_AGORA_APP_ID || "";
+    const appId = process.env.REACT_APP_AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7"; // Đảm bảo appId hợp lệ
     const channelName = roomName;
 
     // Safe Video Play Function
@@ -68,6 +68,45 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
         setUniqueUid(createUniqueId());
     }, [user.id]);
 
+    // Fetch Token from Server
+    useEffect(() => {
+        const fetchToken = async () => {
+            try {
+                if (!uniqueUid || !channelName) return;
+
+                const response = await fetch("/api/token", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ identity: uniqueUid, room: channelName }),
+                });
+
+                console.log("Request body sent:", { identity: uniqueUid, room: channelName });
+                console.log("Response status:", response.status);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || "Unknown error"}`);
+                }
+
+                const data = await response.json();
+                if (!data.token || typeof data.token !== "string") {
+                    throw new Error("Token not found or invalid in response");
+                }
+
+                console.log("Received token:", data.token);
+                setToken(data.token);
+                setConnectionError(null);
+            } catch (error) {
+                console.error("Error fetching token:", error);
+                const errorMessage = error instanceof Error ? error.message : "Unknown Error";
+                setConnectionStatus(ConnectionStatus.ERROR);
+                setConnectionError(`Failed to fetch token: ${errorMessage}`);
+            }
+        };
+
+        fetchToken();
+    }, [uniqueUid, channelName]);
+
     // Logout Handler
     const handleSignOut = async () => {
         try {
@@ -78,12 +117,18 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
             }
 
             // Stop and Close Tracks
-            [localAudioTrack, localVideoTrack].forEach(track => {
+            [localAudioTrack, localVideoTrack].forEach((track) => {
                 if (track) {
                     track.stop();
                     track.close();
                 }
             });
+
+            setLocalAudioTrack(null);
+            setLocalVideoTrack(null);
+            setParticipants([]);
+            setConnectionStatus(ConnectionStatus.DISCONNECTED);
+            setConnectionError(null);
 
             // Firebase Logout
             await signOut(auth);
@@ -91,36 +136,78 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
         } catch (error) {
             console.error("Logout Error:", error);
             const errorMessage = error instanceof Error ? error.message : "Unknown Error";
+            setConnectionStatus(ConnectionStatus.ERROR);
             setConnectionError(`Logout Failed: ${errorMessage}`);
         }
     };
 
     // Agora Channel Setup
     useEffect(() => {
-        if (!token) return;
+        if (!token || !uniqueUid || !appId) return;
 
         const setupAgoraClient = async () => {
             try {
-                const numericUid = parseInt(uniqueUid.split('-')[0], 10);
+                setConnectionStatus(ConnectionStatus.CONNECTING);
 
                 const agoraClient = AgoraRTC.createClient({
                     mode: "rtc",
-                    codec: "vp8"
+                    codec: "vp8",
                 });
 
                 // Error Handler with Typed Error
                 agoraClient.on("error", (err: AgoraRTCError) => {
                     console.error("Agora Client Error:", err);
                     setConnectionStatus(ConnectionStatus.ERROR);
-
                     const errorMessage = err.message || "Unknown Error";
                     const detailedErrorMessage = `Error Code: ${err.code}, Details: ${errorMessage}`;
-
                     setConnectionError(detailedErrorMessage);
                 });
 
+                // Token Renewal Handlers
+                agoraClient.on("token-privilege-will-expire", async () => {
+                    console.log("Token will expire soon, fetching new token...");
+                    try {
+                        const response = await fetch("/api/token", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ identity: uniqueUid, room: channelName }),
+                        });
+                        const data = await response.json();
+                        if (data.token) {
+                            await agoraClient.renewToken(data.token);
+                            setToken(data.token);
+                            console.log("Token renewed:", data.token);
+                        }
+                    } catch (error) {
+                        console.error("Error renewing token:", error);
+                        setConnectionStatus(ConnectionStatus.ERROR);
+                        setConnectionError("Failed to renew token");
+                    }
+                });
+
+                agoraClient.on("token-privilege-did-expire", async () => {
+                    console.log("Token expired, fetching new token...");
+                    try {
+                        const response = await fetch("/api/token", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ identity: uniqueUid, room: channelName }),
+                        });
+                        const data = await response.json();
+                        if (data.token) {
+                            await agoraClient.renewToken(data.token);
+                            setToken(data.token);
+                            console.log("Token renewed:", data.token);
+                        }
+                    } catch (error) {
+                        console.error("Error renewing token:", error);
+                        setConnectionStatus(ConnectionStatus.ERROR);
+                        setConnectionError("Failed to renew token after expiration");
+                    }
+                });
+
                 // Connect to Channel
-                await agoraClient.join(appId, channelName, token, numericUid);
+                await agoraClient.join(appId, channelName, token, uniqueUid); // Sử dụng uniqueUid trực tiếp
                 setClient(agoraClient);
                 setConnectionStatus(ConnectionStatus.CONNECTED);
                 setConnectionError(null);
@@ -129,10 +216,8 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
                 agoraClient.on("user-published", async (user, mediaType) => {
                     try {
                         await agoraClient.subscribe(user, mediaType);
-                        setParticipants(prev =>
-                            prev.some(p => p.uid === user.uid)
-                                ? prev
-                                : [...prev, user]
+                        setParticipants((prev) =>
+                            prev.some((p) => p.uid === user.uid) ? prev : [...prev, user]
                         );
 
                         // Play Video/Audio of New User
@@ -149,13 +234,13 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
 
                 // User Left Event Handler
                 agoraClient.on("user-unpublished", (user) => {
-                    setParticipants(prev => prev.filter(p => p.uid !== user.uid));
+                    setParticipants((prev) => prev.filter((p) => p.uid !== user.uid));
                 });
 
                 // Initialize Local Tracks
                 const [audioTrack, videoTrack] = await Promise.all([
                     AgoraRTC.createMicrophoneAudioTrack(),
-                    AgoraRTC.createCameraVideoTrack()
+                    AgoraRTC.createCameraVideoTrack(),
                 ]);
 
                 setLocalAudioTrack(audioTrack);
@@ -167,7 +252,6 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
                 // Play local video track
                 safePlayVideo(videoTrack, uniqueUid);
                 setIsCameraOn(true);
-
             } catch (error) {
                 console.error("Agora Connection Error:", error);
                 const errorMessage = error instanceof Error ? error.message : "Unknown Error";
@@ -181,15 +265,21 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
         // Cleanup Function
         return () => {
             if (client) {
-                client.leave();
+                client.leave().catch((err) => {
+                    console.error("Failed to leave channel during cleanup:", err);
+                });
                 setClient(null);
             }
-            [localAudioTrack, localVideoTrack].forEach(track => {
+            [localAudioTrack, localVideoTrack].forEach((track) => {
                 if (track) {
                     track.stop();
                     track.close();
                 }
             });
+            setLocalAudioTrack(null);
+            setLocalVideoTrack(null);
+            setParticipants([]);
+            setConnectionStatus(ConnectionStatus.DISCONNECTED);
         };
     }, [token, appId, channelName, uniqueUid]);
 
@@ -217,7 +307,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
             {/* Connection Status and Error Display */}
             <p>Status: {connectionStatus}</p>
             {connectionError && (
-                <div className="error-message" style={{ color: 'red', marginBottom: '10px' }}>
+                <div className="error-message" style={{ color: "red", marginBottom: "10px" }}>
                     {connectionError}
                 </div>
             )}
@@ -227,28 +317,28 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
                 <video
                     ref={setVideoRef(uniqueUid)}
                     style={{
-                        width: '300px',
-                        height: '200px',
-                        display: isCameraOn ? 'block' : 'none'
+                        width: "300px",
+                        height: "200px",
+                        display: isCameraOn ? "block" : "none",
                     }}
                 />
             </div>
 
             {/* Remote Participants Video */}
             <div className="remote-participants">
-                {participants.map(participant => (
+                {participants.map((participant) => (
                     <video
                         key={participant.uid!.toString()}
                         ref={setVideoRef(participant.uid!.toString())}
-                        style={{ width: '300px', height: '200px' }}
+                        style={{ width: "300px", height: "200px" }}
                     />
                 ))}
             </div>
 
             {/* Control Buttons */}
             <div className="video-controls">
-                <Button onClick={toggleCamera} variant="contained">
-                    {isCameraOn ? 'Turn Off Camera' : 'Turn On Camera'}
+                <Button onClick={toggleCamera} variant="contained" disabled={!client}>
+                    {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                 </Button>
                 <Button onClick={handleSignOut} variant="contained" color="secondary">
                     Leave Room
