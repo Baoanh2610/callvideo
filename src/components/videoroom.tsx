@@ -185,7 +185,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
                 }
             });
         };
-    }, [token, appId, channelName, uniqueUid]);
+    }, [token, appId, channelName, uniqueUid, client, localAudioTrack, localVideoTrack]);
 
     // Bật/tắt camera và micro
     const toggleCameraAndMic = async () => {
