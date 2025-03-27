@@ -1,0 +1,31 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/token.js",
+            "use": "@vercel/node"
+        },
+        {
+            "src": "package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "build"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/token",
+            "dest": "/api/token.js"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
+        }
+    ],
+    "env": {
+        "AGORA_APP_ID": "e0354f2d9122425785967ddee3934ec7",
+        "AGORA_APP_CERTIFICATE": "30148e6d8fe5405e94f1d1ec9b7ccac1",
+        "FRONTEND_URL": "https://your-app-name.vercel.app"
+    }
+}
