@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { signInWithRedirect, signOut, GoogleAuthProvider, fetchSignInMethodsForEmail, linkWithRedirect, getRedirectResult, onAuthStateChanged } from "firebase/auth";
+import { signInWithRedirect, GoogleAuthProvider, fetchSignInMethodsForEmail, getRedirectResult } from "firebase/auth";
 import { auth, googleProvider, githubProvider } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
@@ -21,20 +21,6 @@ const Login = ({ setUser }: LoginProps) => {
 
     useEffect(() => {
         console.log("Login component mounted");
-
-        // Kiểm tra trạng thái đăng nhập hiện tại
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            console.log("Current auth state:", firebaseUser);
-            if (firebaseUser) {
-                const userData = {
-                    name: firebaseUser.displayName || "Không xác định",
-                    id: firebaseUser.uid,
-                };
-                console.log("Setting user data from current state:", userData);
-                setUser(userData);
-                navigate("/select-room");
-            }
-        });
 
         // Xử lý kết quả đăng nhập sau khi chuyển hướng
         getRedirectResult(auth)
@@ -58,8 +44,6 @@ const Login = ({ setUser }: LoginProps) => {
                 console.error("Error in getRedirectResult:", error);
                 handleSignInError(error);
             });
-
-        return () => unsubscribe();
     }, [setUser, navigate]);
 
     const handleSignInError = async (error: any) => {
