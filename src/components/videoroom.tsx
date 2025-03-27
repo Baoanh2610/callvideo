@@ -105,7 +105,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ user, roomName }) => {
         };
 
         fetchToken();
-    }, [uniqueUid, channelName]);
+    }, [uniqueUid, channelName, setToken, setConnectionStatus, setConnectionError]);
 
     // Logout Handler
     const handleSignOut = async () => {
