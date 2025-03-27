@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, GithubAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCWSf8JomNIKlUBERBOm7nJ8F9fa0O6qYc",
@@ -12,5 +12,20 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// Cấu hình persistence cho Firebase Auth
+setPersistence(auth, browserLocalPersistence)
+    .then(() => {
+        console.log("Firebase Auth persistence configured");
+    })
+    .catch((error) => {
+        console.error("Error configuring Firebase Auth persistence:", error);
+    });
+
+// Cấu hình providers
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+    prompt: "select_account",
+});
+
 export const githubProvider = new GithubAuthProvider();
