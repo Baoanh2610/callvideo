@@ -29,6 +29,7 @@
     "web-vitals": "^3.5.2"
   },
   "devDependencies": {
+    "@netlify/functions": "^2.6.0",
     "@vitejs/plugin-react": "^4.2.1",
     "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.33.2",
