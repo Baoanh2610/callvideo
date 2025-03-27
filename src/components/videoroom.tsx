@@ -13,9 +13,10 @@ interface User {
 
 interface VideoRoomProps {
     user: User;
+    roomName: string;
 }
 
-const VideoRoom = ({ user }: VideoRoomProps) => {
+const VideoRoom = ({ user, roomName }: VideoRoomProps) => {
     const navigate = useNavigate();
     const [client, setClient] = useState<IAgoraRTCClient | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -26,7 +27,7 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
     const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
 
     const appId = process.env.REACT_APP_AGORA_APP_ID || "e0354f2d9122425785967ddee3934ec7";
-    const channelName = "my-room";
+    const channelName = roomName;
 
     const handleSignOut = async () => {
         try {
@@ -35,8 +36,10 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
             }
             await signOut(auth);
             navigate("/");
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Sign out error:", error);
+            const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+            alert(`Lỗi đăng xuất: ${errorMessage}`);
         }
     };
 
@@ -46,7 +49,7 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 const response = await fetch("/api/token", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ identity: user.id, room: channelName }), // Sử dụng user.id thay vì user.name
+                    body: JSON.stringify({ identity: user.id, room: channelName }),
                 });
                 console.log("Request body sent:", { identity: user.id, room: channelName });
                 console.log("Response status:", response.status);
@@ -69,14 +72,14 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 }
                 console.log("Received token:", data.token);
                 setToken(data.token);
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error("Error fetching token:", error);
                 const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
                 alert(`Không thể lấy token: ${errorMessage}`);
             }
         };
         fetchToken();
-    }, [user]);
+    }, [user, channelName]);
 
     useEffect(() => {
         if (!token) return;
@@ -101,9 +104,17 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 agoraClient.on("user-unpublished", (remoteUser) => {
                     setParticipants((prev) => prev.filter(p => p.uid !== remoteUser.uid));
                 });
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error("Error connecting to channel:", error);
-                alert("Không thể kết nối phòng. Vui lòng thử lại.");
+                let errorMessage: string;
+                if (error instanceof Error) {
+                    errorMessage = error.message;
+                } else if (typeof error === "string") {
+                    errorMessage = error;
+                } else {
+                    errorMessage = "Lỗi không xác định";
+                }
+                alert(`Không thể kết nối phòng. Vui lòng thử lại. Chi tiết lỗi: ${errorMessage}`);
             }
         };
 
@@ -145,15 +156,16 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
                 setLocalVideoTrack(videoTrack);
                 setIsCameraOn(true);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Error toggling camera/mic:", error);
-            alert("Lỗi khi chuyển đổi camera/mic.");
+            const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+            alert(`Lỗi khi chuyển đổi camera/mic: ${errorMessage}`);
         }
     };
 
     return (
         <div>
-            <h2>Phòng Video - Chào {user.name}!</h2>
+            <h2>Phòng Video - Chào {user.name}! (Phòng: {channelName})</h2>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
                 <div key={user.id} style={{ margin: "10px", textAlign: "center" }}>
                     <p>{user.name} (You)</p>

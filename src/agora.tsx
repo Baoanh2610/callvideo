@@ -4,11 +4,17 @@ export const connectToChannel = async (token: string, channelName: string, appId
     const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
     try {
-        await client.join(appId, channelName, token, null); // UID = null để Agora tự gán
-        console.log("Connected to Agora channel:", channelName);
+        await client.join(appId, channelName, token, null);
         return client;
-    } catch (error) {
-        console.error("Error connecting to Agora channel:", error);
-        throw error;
+    } catch (error: unknown) {
+        let errorMessage: string;
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        } else if (typeof error === "string") {
+            errorMessage = error;
+        } else {
+            errorMessage = "Lỗi không xác định";
+        }
+        throw new Error(`Failed to join channel: ${errorMessage}`);
     }
 };
