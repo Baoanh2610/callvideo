@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, GithubAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, GithubAuthProvider, setPersistence, browserLocalPersistence, connectAuthEmulator } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCWSf8JomNIKlUBERBOm7nJ8F9fa0O6qYc",
@@ -26,6 +26,10 @@ setPersistence(auth, browserLocalPersistence)
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
     prompt: "select_account",
+    redirect_uri: window.location.origin,
 });
 
 export const githubProvider = new GithubAuthProvider();
+githubProvider.setCustomParameters({
+    redirect_uri: window.location.origin,
+});
