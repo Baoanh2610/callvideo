@@ -43,7 +43,7 @@ const VideoRoom = ({ user }: VideoRoomProps) => {
     useEffect(() => {
         const fetchToken = async () => {
             try {
-                const response = await fetch("/api/token", {
+                const response = await fetch("http://localhost:3001/api/token", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ identity: user.name, room: channelName }),
