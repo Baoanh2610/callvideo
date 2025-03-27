@@ -5,6 +5,9 @@ exports.handler = async (event, context) => {
     if (event.httpMethod !== "POST") {
         return {
             statusCode: 405,
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({ error: "Method not allowed" }),
         };
     }
@@ -46,12 +49,18 @@ exports.handler = async (event, context) => {
 
         return {
             statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({ token }),
         };
     } catch (error) {
         console.error("Error generating token:", error);
         return {
             statusCode: 500,
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({ error: "Failed to generate token", details: error.message }),
         };
     }
