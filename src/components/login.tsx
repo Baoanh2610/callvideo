@@ -28,7 +28,7 @@ const Login = ({ setUser }: LoginProps) => {
                         name: result.user.displayName || "Không xác định",
                         id: result.user.uid,
                     });
-                    navigate("/select-room");
+                    navigate("/room");
                 }
             })
             .catch((error) => {
